@@ -7,16 +7,15 @@ ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
 
 RUN latestBaseurl="$(curl -s https://api.github.com/repos/tianon/gosu/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4 | sed 's:/[^/]*$::')" \
-&& dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" \
-&& curl -o /usr/local/bin/gosu -SL "$latestBaseurl/gosu-$dpkgArch" \
-&& curl -o /usr/local/bin/gosu.asc -SL "$latestBaseurl/gosu-$dpkgArch.asc" \
-&& export GNUPGHOME="$(mktemp -d)" \
-&& echo "disable-ipv6" >> $GNUPGHOME/dirmngr.conf \
-&& gpg --no-tty --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
-&& gpg --no-tty --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
-&& rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc \
-&& chmod +x /usr/local/bin/gosu \
-&& gosu nobody true \
+    && dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')" \
+    && curl -o /usr/local/bin/gosu -SL "$latestBaseurl/gosu-$dpkgArch" \
+    && curl -o /usr/local/bin/gosu.asc -SL "$latestBaseurl/gosu-$dpkgArch.asc"
+RUN mkdir -p ~/.gnupg
+RUN echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
+RUN gpg --no-tty --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4
+RUN gpg --no-tty --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
+RUN gosu nobody true
 
 WORKDIR /home/node/
 

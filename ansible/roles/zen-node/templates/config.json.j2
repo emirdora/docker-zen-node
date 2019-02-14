@@ -2,7 +2,7 @@
  "active": "{{ nodetype }}",
  "{{ nodetype }}": {
   "nodetype": "{{ nodetype }}",
-  "nodeid": null,
+  "nodeid": {{ nodeID | default('null') }},
   "servers": [
    "{{ servers }}2.eu",
    "{{ servers }}1.eu",

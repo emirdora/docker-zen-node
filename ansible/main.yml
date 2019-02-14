@@ -3,8 +3,9 @@
 
 - name: configure and deploy zen secnodes
   hosts: zen-nodes
-  remote_user: root
   gather_facts: false
+  become: true
+  become_method: sudo
   pre_tasks:
   - name: Install python2 for Ansible
     raw: bash -c "test -e /usr/bin/python || (apt -qqy update && apt install -qqy python-minimal)"
@@ -15,14 +16,8 @@
   roles:
     - zen-node
 
-- hosts: localhost
-  connection: local
-  gather_facts: false
-  tasks:
-    - name: copy results to local file
-      template: src=output.j2 dest="/tmp/zen-node-results"
+# Check status
+- import_playbook: status.yml
 
-    - name: output results
-      command: cat /tmp/zen-node-results
-      register: cat
-    - debug: var=cat.stdout_lines
+# Start streaming the blockchain to new servers
+- import_playbook: download.yml

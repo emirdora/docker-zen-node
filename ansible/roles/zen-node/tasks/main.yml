@@ -44,19 +44,18 @@
 
 - name: Install required packages
   apt:
-    name: "{{ item }}"
+    name: ['docker.io', 'apt-transport-https', 'lsb-release', 'curl', 'fail2ban', 'unattended-upgrades', 'ufw', 'certbot', 'jq']
     state: latest
-  with_items:
-    - docker.io
-    - apt-transport-https
-    - lsb-release
-    - curl
-    - fail2ban
-    - unattended-upgrades
-    - ufw
-    - certbot
   register: install_packages
 
+- name: Make docker usable without sudo for user
+  user:
+    name: "{{ ansible_env.SUDO_USER }}"
+    groups:
+      - docker
+      - sudo
+    state: present
+    
 
 - name: Start docker
   service:
@@ -64,14 +63,17 @@
     state: started
     enabled: yes
 
-
 - name: Create directories
   file:
     path: "{{ item }}"
     state: directory
+    owner: "{{ ansible_env.SUDO_UID }}"
+    group: "{{ ansible_env.SUDO_GID }}"
     mode: 0755
     recurse: yes
   with_items:
+    - /mnt
+    - /mnt/zen
     - /mnt/zen/config
     - /mnt/zen/data
     - /mnt/zen/zcash-params
@@ -101,15 +103,17 @@
 
 - name: Open permissions on cert directory
   file:
-    path: "/etc/letsencrypt/"
+    path: "/etc/letsencrypt"
     state: directory
     mode: 0755
     recurse: yes
 
 - name: Creating the secnode config...
   file:
-    path: /mnt/zen/secnode
+    path: "/mnt/zen/secnode"
     state: directory
+    owner: "{{ ansible_env.SUDO_UID }}"
+    group: "{{ ansible_env.SUDO_GID }}"
     mode: 0755
     recurse: yes
 
@@ -119,7 +123,7 @@
     if [ -f /mnt/zen/secnode/rpcpassword ]; then
       cat /mnt/zen/secnode/rpcpassword
     else
-      head -c 32 /dev/urandom | base64
+      cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
     fi
   register: rpcpassword
 
@@ -156,9 +160,24 @@
   set_fact:
     servers: "{% if nodetype=='super' %}xns{% else %}ts{% endif %}"
 
-- name: Set server public IP addresses
+- name: Get the server public IP addresse
+  command: "dig {{ fqdn }} A {{ fqdn }} AAAA +short | awk '{print $1;}'"
+  register: get_ip
+
+- name: Configure the server public IP addresses
   set_fact:
-    externalIP_list: "$(dig $fqdn A $fqdn AAAA +short) "
+    externalIP: "{{ get_ip.stdout }}"
+
+- name: Get the existing nodeid (if any)
+  command: "jq -r '.{{ nodetype }}.nodeid' /mnt/zen/secnode/config.json"
+  register: get_node_id
+  ignore_errors: yes
+  become_user: "{{ ansible_env.SUDO_USER }}"
+
+- name: Set the nodeid variable
+  set_fact:
+    nodeID:  "{{ get_node_id.stdout }}"
+  when: get_node_id.rc == 0 
 
 - name: Creating the zen secnode configuration
   template:
@@ -175,13 +194,13 @@
 - name: Enabling and starting zen-node container services...
   service:
     name: zen-node
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Enabling and starting zen-secnodetracker container services...
   service:
     name: zen-secnodetracker
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Disabling existing certbot timer...
@@ -193,13 +212,13 @@
 - name: Enabling and starting the zenupdate service...
   service:
     name: zenupdate
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Enabling and starting the zenupdate timer...
   systemd:
     name: zenupdate.timer
-    state: started
+    state: restarted
     enabled: yes
 
 - name: Configure ufw defaults
@@ -242,33 +261,13 @@
   command: docker exec zen-node /usr/local/bin/gosu user zen-cli getinfo
   register: fetch_param_result
   until: fetch_param_result.rc == 0
-  retries: 100
+  retries: 50
   delay: 30
 
 
-- name: Generate shield address
+- name: Get shield address
   shell: |
     if [ $(docker exec zen-node /usr/local/bin/gosu user zen-cli z_listaddresses | wc -l) -eq 2 ]; then
       docker exec zen-node /usr/local/bin/gosu user zen-cli z_getnewaddress
       systemctl restart zen-secnodetracker
     fi
-
-- name: Get current block
-  shell: |
-    docker exec zen-node /usr/local/bin/gosu user zen-cli getinfo | grep \"blocks\" | tr -d \",
-  register: zenblock
-
-- name: Get shield address
-  shell: |
-    docker exec zen-node /usr/local/bin/gosu user zen-cli z_listaddresses | tr -d []\"' '
-  register: zenshield
-
-- name: Get shield address balance
-  shell: |
-    docker exec zen-node /usr/local/bin/gosu user zen-cli z_gettotalbalance | tr -d {}\",
-  register: zenbalance
-
-- set_fact:
-    zenblock: "{{ zenblock.stdout }}"
-    zenshield: "{{ zenshield.stdout }}"
-    zenbalance: "{{ zenbalance.stdout }}"

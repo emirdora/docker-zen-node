@@ -1,0 +1,53 @@
+- name: Loading variables
+  hosts: bootstrap-nodes
+  gather_facts: true
+
+- name: Downloading the blockchain from the see nodes to the new nodes
+  hosts: bootstrap-nodes
+  become: true
+  tasks:
+    - name: Stopping zen-node container services...
+      service:
+        name: zen-node
+        state: stopped
+        enabled: yes
+
+    - name: Stopping zen-secnodetracker container services...
+      service:
+        name: zen-secnodetracker
+        state: stopped
+        enabled: yes
+
+    - name: Pick a random seed node to get the blockchain from
+      set_fact:
+        seed_node: "{{ item }}"
+      with_random_choice: "{{ groups['seeds'] }}"
+
+    - name: Transfer Blockchain Data
+      become: false
+      synchronize:
+        src: "{{ item }}"
+        dest: "{{ item }}"
+        set_remote_user: true
+        archive: true
+        delete: true
+        partial: true
+      retries: 3
+      delay: 5
+      delegate_to: "{{ seed_node }}"
+      with_items: "{{ blockchain_folders }}"
+      register: download
+
+    - name: Enabling and starting zen-node container services...
+      service:
+        name: zen-node
+        state: started
+        enabled: yes
+      when: download.finished
+
+    - name: Enabling and starting zen-secnodetracker container services...
+      service:
+        name: zen-secnodetracker
+        state: started
+        enabled: yes
+      when: download.finished

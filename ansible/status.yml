@@ -3,17 +3,22 @@
 
 - name: Check the status of all zen-nodes
   hosts: zen-nodes
-  remote_user: root
+  become: true
   tasks:
     - name: Get current block
       shell: |
-        docker exec zen-node /usr/local/bin/gosu user zen-cli getinfo | grep \"blocks\" | tr -d \",
+        docker exec zen-node /usr/local/bin/gosu user zen-cli getinfo | jq -r '.["blocks"]'
       register: zenblock
 
     - name: Get shield address
       shell: |
-        docker exec zen-node /usr/local/bin/gosu user zen-cli z_listaddresses | tr -d []\"' '
+        docker exec zen-node /usr/local/bin/gosu user zen-cli z_listaddresses | jq -r '.[0]'
       register: zenshield
+
+    - name: Get transparent address from the node
+      shell: |
+        docker exec zen-node /usr/local/bin/gosu user zen-cli listaddresses | jq -r '.[0]'
+      register: zentransparent
 
     - name: Get shield address balance
       shell: |
@@ -24,13 +29,19 @@
         zenblock: "{{ zenblock.stdout }}"
         zenshield: "{{ zenshield.stdout }}"
         zenbalance: "{{ zenbalance.stdout }}"
+        zentransparent: "{{ zentransparent.stdout }}"
 
 - hosts: localhost
   connection: local
+  become: true
   gather_facts: false
   tasks:
     - name: copy results to local file
-      template: src=output.j2 dest="/tmp/zen-node-results"
+      template: 
+        src: output.j2
+        dest: /tmp/zen-node-results
+        owner: "{{ ansible_user }}"
+        mode: 0777
 
     - name: output results
       command: cat /tmp/zen-node-results

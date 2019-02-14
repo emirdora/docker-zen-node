@@ -2,13 +2,15 @@
 Description=Zen Daemon Container
 After=docker.service
 Requires=docker.service
+
 [Service]
 TimeoutStartSec=10m
-Restart=always
+Restart=on-failure
 ExecStartPre=-/usr/bin/docker stop zen-node
-ExecStartPre=-/usr/bin/docker rm  zen-node
+ExecStartPre=-/usr/bin/docker rm zen-node
 # Always pull the latest docker image
-ExecStartPre=/usr/bin/docker pull whenlambomoon/zend:latest
-ExecStart=/usr/bin/docker run --rm --net=host -p 9033:9033 -p 18231:18231 -v /mnt/zen:/mnt/zen -v /etc/letsencrypt/:/etc/letsencrypt/ --name zen-node whenlambomoon/zend:latest
+ExecStartPre=/usr/bin/docker pull {{ docker_zend }}
+ExecStart=/usr/bin/docker run --rm --net=host -p 9033:9033 -p 18231:18231 -e "LOCAL_USER_ID={{ ansible_env.SUDO_UID }}" -e "LOCAL_GRP_ID={{ ansible_env.SUDO_GID }}" -v /mnt/zen:/mnt/zen -v /etc/letsencrypt/:/etc/letsencrypt/ --name zen-node {{ docker_zend }}
+
 [Install]
 WantedBy=multi-user.target

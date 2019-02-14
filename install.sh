@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -xe
 export DEBIAN_FRONTEND=noninteractive
 
 print_status() {
@@ -66,11 +67,14 @@ print_status "Creating the docker mount directories..."
 mkdir -p /mnt/zen/{config,data,zcash-params,certs}
 
 print_status "Removing acme container service..."
-rm /etc/systemd/system/acme-sh.service
+systemctl is-enabled acme-sh \
+&& (systemctl disable acme-sh && rm -f /etc/systemd/system/acme-sh.service) \
+|| echo "acme-sh is disabled in this machine. No action taken"
 
 print_status "Disable apache2 if enabled, to free Port 80..."
-systemctl disable apache2
-systemctl stop apache2
+systemctl is-enabled apache2 \
+&& (systemctl stop apache2 && systemctl disable apache2) \
+|| echo "apache2 is disabled in this machine. No action taken"
 
 print_status "Installing certbot..."
 add-apt-repository ppa:certbot/certbot -y
@@ -173,6 +177,14 @@ cat << EOF > /mnt/zen/secnode/config.json
 }
 EOF
 
+LOCAL_USER_ID=$(bash -c 'echo "${SUDO_UID}"')
+LOCAL_GRP_ID=$(bash -c 'echo "${SUDO_GID}"')
+#$DOCKER_ZEND="whenlambomoon/zend:latest"
+DOCKER_ZEND="emirdora/zend:latest"
+#$DOCKER_SECNODETRACKER="whenlambomoon/secnodetracker:latest"
+DOCKER_SECNODETRACKER="emirdora/secnodetracker:latest"
+print_status "Using following values: LOCAL_USER_ID->${LOCAL_USER_ID}  LOCAL_GRP_ID->${LOCAL_GRP_ID}  DOCKER_ZEND->${DOCKER_ZEND} DOCKER_SECNODETRACKER->${DOCKER_SECNODETRACKER}"
+
 print_status "Installing zend service..."
 cat <<EOF > /etc/systemd/system/zen-node.service
 [Unit]
@@ -187,7 +199,7 @@ ExecStartPre=-/usr/bin/docker stop zen-node
 ExecStartPre=-/usr/bin/docker rm  zen-node
 # Always pull the latest docker image
 ExecStartPre=/usr/bin/docker pull whenlambomoon/zend:latest
-ExecStart=/usr/bin/docker run --rm --net=host -p 9033:9033 -p 18231:18231 -v /mnt/zen:/mnt/zen -v /etc/letsencrypt/:/etc/letsencrypt/ --name zen-node whenlambomoon/zend:latest
+ExecStart=/usr/bin/docker run --rm --net=host -p 9033:9033 -p 18231:18231 -e "LOCAL_USER_ID=${LOCAL_USER_ID}" -e "LOCAL_GRP_ID=${LOCAL_GRP_ID}" -v /mnt/zen:/mnt/zen -v /etc/letsencrypt/:/etc/letsencrypt/ --name zen-node ${DOCKER_ZEND}
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -206,8 +218,7 @@ ExecStartPre=-/usr/bin/docker stop zen-secnodetracker
 ExecStartPre=-/usr/bin/docker rm  zen-secnodetracker
 # Always pull the latest docker image
 ExecStartPre=/usr/bin/docker pull whenlambomoon/secnodetracker:latest
-#ExecStart=/usr/bin/docker run --init --rm --net=host -v /mnt/zen:/mnt/zen --name zen-secnodetracker whenlambomoon/secnodetracker:latest
-ExecStart=/usr/bin/docker run --rm --net=host -v /mnt/zen:/mnt/zen --name zen-secnodetracker whenlambomoon/secnodetracker:latest
+ExecStart=/usr/bin/docker run --rm --net=host -e "LOCAL_USER_ID=${LOCAL_USER_ID}" -e "LOCAL_GRP_ID=${LOCAL_GRP_ID}" -v /mnt/zen:/mnt/zen --name zen-secnodetracker ${DOCKER_SECNODETRACKER}
 [Install]
 WantedBy=multi-user.target
 EOF
