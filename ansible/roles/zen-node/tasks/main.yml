@@ -1,6 +1,5 @@
 ---
 
-
 - name: Creating a 4GB swap file
   command: fallocate -l 4G /swapfile
   register: write_swapfile
@@ -55,7 +54,7 @@
       - docker
       - sudo
     state: present
-    
+
 
 - name: Start docker
   service:
@@ -152,9 +151,9 @@
   register: write_zen_timer
 
 - name: reload systemd for zen containers
-  systemd: 
+  systemd:
     daemon_reload: yes
-  when: write_zen_node.changed or write_zen_node_tracker.changed or write_zen_updater.changed or write_zen_timer.changed 
+  when: write_zen_node.changed or write_zen_node_tracker.changed or write_zen_updater.changed or write_zen_timer.changed
 
 - name: Set the servers env
   set_fact:
@@ -177,7 +176,7 @@
 - name: Set the nodeid variable
   set_fact:
     nodeID:  "{{ get_node_id.stdout }}"
-  when: get_node_id.rc == 0 
+  when: get_node_id.rc == 0
 
 - name: Creating the zen secnode configuration
   template:

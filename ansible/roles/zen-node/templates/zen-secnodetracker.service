@@ -2,6 +2,7 @@
 Description=Zen Secnodetracker Container
 After=docker.service
 Requires=docker.service
+
 [Service]
 TimeoutStartSec=10m
 Restart=on-failure
@@ -10,5 +11,6 @@ ExecStartPre=-/usr/bin/docker rm  zen-secnodetracker
 # Always pull the latest docker image
 ExecStartPre=/usr/bin/docker pull {{ docker_secnodetracker }}
 ExecStart=/usr/bin/docker run --rm --net=host -e "LOCAL_USER_ID={{ ansible_env.SUDO_UID }}" -e "LOCAL_GRP_ID={{ ansible_env.SUDO_GID }}" -v /mnt/zen:/mnt/zen --name zen-secnodetracker {{ docker_secnodetracker }}
+
 [Install]
 WantedBy=multi-user.target

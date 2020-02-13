@@ -1,10 +1,11 @@
 ---
 # Upgrade zen secure nodes
+# /!\ Ensure the image in docker Hub was rebuilt recently!
 
 - name: upgrade zen secnodes
   hosts: zen-nodes
   gather_facts: false
-  remote_user: root
+  become: yes
 
   tasks:
     - name: install python 2

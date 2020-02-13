@@ -6,7 +6,7 @@ If you have an existing node it will be easiest to run the installer from that n
 
 ```
 apt-get install ansible
-git clone https://github.com/WhenLamboMoon/docker-zen-node/
+git clone https://github.com/emirdora/docker-zen-node/
 cd docker-zen-node/ansible/
 ```
 
@@ -28,7 +28,7 @@ node2.example.com
 node3.example.com
 ```
 
-If you are running this from an existing node, jump down to the [bootstrap node](https://github.com/WhenLamboMoon/docker-zen-node/tree/master/ansible#bootstraping-the-blockchain) section
+If you are running this from an existing node, jump down to the [bootstrap node](https://github.com/emirdora/docker-zen-node/tree/master/ansible#bootstraping-the-blockchain) section
 to speed up node installation.
 
 Now run the installer, this will install the securenodes on all of your listed hosts.
@@ -89,9 +89,6 @@ The installer has a handy way to update all of your zen-nodes:
 ```
 ansible-playbook -i hosts upgrade.yml
 ```
-
-This will upgrade restart the required services. It is recommended you subscribe to
-[announcement tracking](https://github.com/WhenLamboMoon/docker-zen-node/issues/28) to receive email notifications.
 
 ### Status
 
