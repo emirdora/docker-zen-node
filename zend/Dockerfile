@@ -2,7 +2,8 @@ FROM ubuntu:16.04
 
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y --no-install-recommends install ca-certificates curl wget apt-transport-https lsb-release libgomp1 jq apt-utils
-RUN echo 'deb https://zencashofficial.github.io/repo/ '$(lsb_release -cs)' main' | tee --append /etc/apt/sources.list.d/zen.list
+RUN echo "deb https://HorizenOfficial.github.io/repo/ $(lsb_release -cs) main" | tee --append /etc/apt/sources.list.d/zen.list
+RUN rm -rf /var/lib/apt/lists/*
 RUN gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv 219F55740BBF7A1CE368BA45FB7053CE4991B669
 RUN gpg --export 219F55740BBF7A1CE368BA45FB7053CE4991B669 | apt-key add -
 RUN apt-get update
