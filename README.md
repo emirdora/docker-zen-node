@@ -114,7 +114,19 @@ rsync -avh --progress /mnt/zen/config/blocks /mnt/zen/config/chainstate /mnt/zen
 
 This will save you the 1-2 hours wait for a new node to download the full chain.
 
-## Moving/removing nodes
+## Transfering a node to a new server
+
+To change and use a new server:
+
+* Proceed to a standard installation on the new server.
+* Copy blockchain files as mentioned above.
+* Copy `/mnt/zen/config/wallet.dat` from the old node to the new node.
+```
+rsync -avh --progress /mnt/zen/config/wallet.dat yournewnode:/mnt/zen/config/wallet.dat
+```
+* Use the nodeid from the old node to the new node in `/mnt/zen/secnode/config.json`
+
+## Removing nodes
 
 If you want to move the ZEN off the node you need to run the following commands:
 
@@ -168,6 +180,12 @@ To resolve this you will need to reindex your zen-node. To do this you will need
 ```
 systemctl stop zen-node
 docker run --rm --net=host -p 9033:9033 -p 18231:18231 -v /mnt/zen:/mnt/zen -v /etc/letsencrypt/:/etc/letsencrypt --name zen-node emirdora/zend:latest zend -reindex
+```
+
+Alternatively you can fix blockchain issues using another of your nodes that is currently working:
+
+```
+zen_node=<yournode>; rsync -avh --progress --delete /mnt/zen/config/blocks/ $zen_node:/mnt/zen/config/blocks && rsync -avh --progress --delete /mnt/zen/config/chainstate/ $zen_node:/mnt/zen/config/chainstate && rsync -avh --progress --delete /mnt/zen/config/database/ $zen_node:/mnt/zen/config/database
 ```
 
 Once it finishes reindexing you can exit and restart the zen-node normally:

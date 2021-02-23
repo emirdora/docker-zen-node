@@ -1,10 +1,31 @@
 # Parameters passed to all hosts
 [all:vars]
-email=test@example.com
-cert_email=test@example.com
-region=sea
+email=email@example.com
+cert_email=email@example.com
+region=eu # zen server region, should be 'eu' or 'na' 
+
+# Custom builds?
+#docker_zend=emirdora/zend:latest
+#docker_secnodetracker=emirdora/secnodetracker:latest
+#blockchain_folders=['/mnt/zen/config/blocks','/mnt/zen/config/chainstate','/mnt/zen/config/database']
+
 
 [zen-nodes]
-localhost fqdn=node.example.com stakeaddr=test nodetype=secure cert_domain=nodename.example.com
+node1.example.com  fqdn=node1.example.com  stakeaddr=znxxxxxxxxxxx  nodetype=secure  cert_domain=node1.example.com
+node2.example.com  fqdn=node2.example.com  stakeaddr=znyyyyyyyyyyy  nodetype=secure  cert_domain=node2.example.com
+node3.example.com  fqdn=node3.example.com  stakeaddr=znzzzzzzzzzzz  nodetype=super   cert_domain=node3.example.com
 
+# Take blockchain from:
+[seed-nodes]
+node1.example.com
+node2.example.com
+
+# Copy blockchain to:
 [bootstrap-nodes]
+node3.example.com
+
+
+[targets]
+node1.example.com  ansible_connection=ssh  ansible_user=ubuntu
+node2.example.com  ansible_connection=ssh  ansible_user=myUser
+node3.example.com  ansible_connection=ssh  ansible_user=myUser

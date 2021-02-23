@@ -21,7 +21,7 @@
     - name: Pick a random seed node to get the blockchain from
       set_fact:
         seed_node: "{{ item }}"
-      with_random_choice: "{{ groups['seeds'] }}"
+      with_random_choice: "{{ groups['seed-nodes'] }}"
 
     - name: Transfer Blockchain Data
       become: false
@@ -35,7 +35,12 @@
       retries: 3
       delay: 5
       delegate_to: "{{ seed_node }}"
-      with_items: "{{ blockchain_folders }}"
+      with_items: "{{ blockchain_folders | default(default_blockchain_folders) }}"
+      vars:
+        default_blockchain_folders:
+          - '/mnt/zen/config/blocks'
+          - '/mnt/zen/config/chainstate'
+          - '/mnt/zen/config/database'
       register: download
 
     - name: Enabling and starting zen-node container services...

@@ -1,0 +1,29 @@
+- name: Loading variables
+  hosts: zen-nodes
+  gather_facts: true
+
+- name: Build and distribute ssh keys
+  hosts: zen-nodes
+  tasks:
+    - name: Create ssh direcotry
+      file:
+        path: "{{ ansible_user_dir }}/.ssh"
+        state: directory
+
+    - name: Generate /etc/ssh/ RSA host key
+      command: "ssh-keygen -q -m PKCS8 -t rsa -b 4096 -f ~/.ssh/zen_{{ hostvars[item].ansible_env.USER }}_{{ ansible_fqdn }}_{{ item }} -C '' -N ''"
+      args:
+        creates: "~/.ssh/zen_{{ hostvars[item].ansible_env.USER }}_{{ ansible_fqdn }}_{{ item }}"
+      with_items: "{{ groups['zen-nodes'] }}"
+
+    - name: List public keys to send over
+      shell: "ls -d ~/.ssh/* | egrep '.*zen_.+_[^_]+_[^_]+' | egrep -v '.pub$'"
+      register: public_keys
+
+    
+    - debug: msg="{{ public_keys }}"
+
+
+    - name: Spread keys around
+      shell: "ssh-copy-id -o 'StrictHostKeyChecking no' -i {{ item }} {{ item | regex_replace('.*zen_(.+)_[^_]+_[^_]+$', '\\1') }}@{{ item | regex_replace('.*zen_.+_[^_]+_([^_]+)$', '\\1') }}"
+      with_items: "{{ public_keys.stdout_lines }}"

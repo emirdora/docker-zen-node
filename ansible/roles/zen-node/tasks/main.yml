@@ -76,7 +76,6 @@
     - /mnt/zen/config
     - /mnt/zen/data
     - /mnt/zen/zcash-params
-    - /mnt/zen/certs
 
 - name: Remove acme-sh from systemd
   file:
@@ -122,7 +121,8 @@
     if [ -f /mnt/zen/secnode/rpcpassword ]; then
       cat /mnt/zen/secnode/rpcpassword
     else
-      cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
+      tr -d -c "a-zA-Z0-9" < /dev/urandom | head -c 33
+      #cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1
     fi
   register: rpcpassword
 
@@ -159,13 +159,13 @@
   set_fact:
     servers: "{% if nodetype=='super' %}xns{% else %}ts{% endif %}"
 
-- name: Get the server public IP addresse
+- name: Get the server public IP address
   command: "dig {{ fqdn }} A {{ fqdn }} AAAA +short | awk '{print $1;}'"
   register: get_ip
 
 - name: Configure the server public IP addresses
   set_fact:
-    externalIP: "{{ get_ip.stdout }}"
+    externalIP_list: "{{ get_ip.stdout_lines }}"
 
 - name: Get the existing nodeid (if any)
   command: "jq -r '.{{ nodetype }}.nodeid' /mnt/zen/secnode/config.json"

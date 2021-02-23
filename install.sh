@@ -92,7 +92,7 @@ Description=zenupdate.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/certbot -q renew --deploy-hook 'systemctl restart zen-node && systemctl restart zen-secnodetracker && docker rmi $(docker images --quiet --filter "dangling=true")'
+ExecStart=/usr/bin/certbot -q renew --deploy-hook 'systemctl restart zen-node && systemctl restart zen-secnodetracker && docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi -f'
 PrivateTmp=true" | tee /lib/systemd/system/zenupdate.service
 
 echo \
